@@ -1,0 +1,8 @@
+as of 13th may 2026 
+i am finnally freezing the core logic to the following points 
+1. we will focus more on providing insights , visualisations, key metrics   
+2. instead of comparison with mutual fund we will just make it possible for the user to analyse and derive insights from mf portfolios 
+3. for interactive nature we have a chatbot which will provide insights and answer questions related to the portfolio   
+4. next important task is make the site dynamic , figure out a way for regular use of pipeline to scrape the changes 
+5. we need to create a database in mysql to store the scraped data and the generated insights 
+6. also we shall use yfinance for dynamic tracking of user portfolio 

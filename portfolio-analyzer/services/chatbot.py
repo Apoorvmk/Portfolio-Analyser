@@ -23,68 +23,44 @@ def _get_client() -> Groq:
 
 
 # =========================================================
-# REPORT GENERATOR PROMPT
+# REPORT GENERATOR PROMPT (INSTITUTIONAL GRADE)
 # =========================================================
 
 REPORT_SYSTEM_PROMPT = """
-You are a professional portfolio analysis assistant.
+You are a Senior Quantitative Portfolio Strategist.
 
-Your task is to generate a detailed but readable
-investment analysis report for a retail investor.
+Your task is to generate a high-precision, institutional-grade investment analysis report.
 
 Guidelines:
-- Be analytical but easy to understand
-- Explain concepts in plain English
-- Avoid excessive jargon
-- Use short paragraphs
-- Keep a professional but modern tone
-- Focus on interpretation, not just metrics
-- Do not overwhelm the user with numbers
-- Do not give direct financial advice
+- USE FINANCIAL TERMINOLOGY: Discuss P/E ratios, Beta coefficients, Standard Deviation, CAGR, and Alpha where relevant.
+- BE QUANTITATIVE: Play with numbers more than words. Use percentages, basis points (bps), and ratios to explain gaps.
+- BE SPECIFIC: Do not give generic diversification advice. Analyze the EXACT sectors and gaps provided.
+- DEEP ANALYSIS: Look into sectoral correlation. For example, if the user is heavy in Banks and NBFCs, discuss the systemic interest rate risk.
+- READABILITY: Use professional formatting. Avoid long essays. Use bullet points and bold figures.
+- TONE: Professional, data-driven, and objective.
+- NO GENERIC FILLER: Skip the "Diversification is important" intros. Dive straight into the data.
 """
 
 
 # =========================================================
-# CHATBOT SYSTEM PROMPT
+# CHATBOT SYSTEM PROMPT (QUANTITATIVE ASSISTANT)
 # =========================================================
 
 CHATBOT_SYSTEM_PROMPT = """
-You are a modern fintech portfolio assistant.
+You are an AI Portfolio Quant. 
 
-You help users understand their portfolio
-in a conversational and highly readable way.
+You provide precise, data-backed answers to portfolio strategy questions.
 
 Your style:
-- concise
-- natural
-- insightful
-- calm
-- practical
+- Precise (use exact numbers from the report)
+- Sophisticated (use terms like 'overweight', 'tactical allocation', 'sectoral concentration')
+- Concise (no fluff)
 
 Rules:
-- Keep responses short unless the user asks for detail
-- Prefer short paragraphs
-- Avoid essay-style answers
-- Avoid sounding academic or corporate
-- Use simple investing language
-- Do not explain every metric unless necessary
-- Focus only on what the user asked
-- Do not repeat the full report
-- Mention only the most relevant insights
-- Avoid large bullet lists
-- Avoid generic textbook explanations
-- Avoid unnecessary disclaimers
-- Never overload the user with statistics
-
-Good response style example:
-"Your portfolio is fairly diversified overall,
-but you're still heavily tilted toward IT and Financials.
-That means performance may depend too much on those sectors."
-
-Bad response style example:
-"The portfolio diversification entropy metric indicates..."
-
-Do not give direct buy/sell advice.
+- Focus on quantitative insights.
+- If a user asks about a sector, discuss its valuation (P/E) or risk profile (Beta) based on the current market context.
+- Keep responses short but dense with information.
+- Avoid generic encouragement.
 """
 
 
@@ -94,39 +70,32 @@ Do not give direct buy/sell advice.
 
 def _build_report_context(report: AnalysisReport) -> str:
     """
-    Creates a compact and readable portfolio context
-    instead of dumping raw data blindly.
+    Creates a dense quantitative context for the LLM.
     """
 
     return f"""
-PORTFOLIO SUMMARY
+PORTFOLIO QUANT DATA:
 
-Selected Benchmark Fund:
-{report.selected_fund_name}
+BENCHMARK: {report.selected_fund_name}
+HEALTH_INDEX: {report.diversification_score}/100
 
-Diversification Score:
-{report.diversification_score}
-
-Sector Allocation:
+SECTOR_ALLOCATION_VECTOR:
 {report.sector_allocation}
 
-Key Risk Signals:
+RISK_SIGNALS_SEVERITY:
 {report.severity_flags}
 
-Missing Sectors:
-{report.missing_sectors}
+CONCENTRATION_METRICS:
+- Entropy: {report.entropy} (Lower = Higher Risk)
+- HHI: {report.hhi} (Index of Market Concentration)
+- Coverage Count: {report.coverage} sectors
+- Top-1 Concentration Ratio: {report.concentration_ratio}%
 
-Overexposed Sectors:
-{report.over_exposed_sectors}
-
-Gap Analysis vs Benchmark:
+BENCHMARK_GAP_ANALYSIS (User % - Benchmark %):
 {report.gap_analysis}
 
-Portfolio Statistics:
-- Entropy: {report.entropy}
-- HHI: {report.hhi}
-- Coverage: {report.coverage}
-- Concentration Ratio: {report.concentration_ratio}
+MISSING_EXPOSURE: {report.missing_sectors}
+OVERWEIGHT_EXPOSURE: {report.over_exposed_sectors}
 """
 
 
@@ -149,28 +118,23 @@ def get_report_narrative(report: AnalysisReport) -> str:
     user_prompt = f"""
 {context}
 
-Generate a portfolio analysis report with:
+Generate an Executive Portfolio Diagnostic Report.
 
-1. Portfolio Overview
-2. Sector Breakdown
-3. Diversification Health
-4. Benchmark Comparison
-5. Key Risks and Strengths
-6. Suggested Areas for Further Research
+Structure:
+1. Executive Summary (Quantitative highlight)
+2. Sectoral Vector Analysis (Discussion of overweight/underweight positions in bps)
+3. Concentration & HHI Risk Assessment
+4. Benchmark Variance Diagnostic (Why the gap exists)
+5. Strategic Optimization Paths (Specific sectoral shifts)
 
-Guidelines:
-- Keep the report readable
-- Use natural language
-- Avoid giant paragraphs
-- Explain implications clearly
-- Focus more on insights than raw metrics
+Constraint: Play with numbers. Use financial ratios. Keep it to-the-point.
 """
 
     try:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            temperature=0.6,
-            max_tokens=1200,
+            temperature=0.3, # Lower temperature for more consistent quantitative logic
+            max_tokens=1000,
             messages=[
                 {
                     "role": "system",
@@ -234,8 +198,8 @@ Portfolio Context:
     try:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            temperature=0.7,
-            max_tokens=300,
+            temperature=0.5,
+            max_tokens=400,
             messages=messages
         )
 

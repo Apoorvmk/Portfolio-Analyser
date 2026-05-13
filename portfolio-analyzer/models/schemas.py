@@ -34,3 +34,16 @@ class ChatRequest(BaseModel):
     message: str
     conversation_history: List[ChatMessage]
     report: AnalysisReport
+
+class RecommendationRequest(BaseModel):
+    portfolio: PortfolioInput
+
+class TopMatch(BaseModel):
+    fund_name: str
+    category: str
+    similarity: float
+
+class RecommendResponse(BaseModel):
+    top_match: TopMatch
+    top_n: List[TopMatch]
+    user_sector_vector: Dict[str, float]

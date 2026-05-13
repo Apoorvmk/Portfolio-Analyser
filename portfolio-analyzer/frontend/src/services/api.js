@@ -31,4 +31,9 @@ export const chatWithReport = async (data) => {
   return response.data;
 };
 
+export const recommendFunds = async (data) => {
+  const response = await api.post('/recommend', data);
+  return response.data;
+};
+
 export default api;

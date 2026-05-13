@@ -145,7 +145,7 @@ export default function Analyzer() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-5rem)] overflow-hidden">
       {/* Input Sidebar */}
       <aside className="w-full lg:w-[450px] border-r border-white/5 flex flex-col bg-[#080808]">
         <div className="p-8 border-b border-white/5">

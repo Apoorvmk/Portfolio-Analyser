@@ -148,7 +148,7 @@ if __name__ == "__main__":
     ]
 
     # Step 1 — User sector vector
-    mapping, mapping_upper = load_sector_mapping("fund_stocks_clean.csv")
+    mapping, mapping_upper = load_sector_mapping("data/fund_stocks_clean_grouped.csv")
     sector_vector, unmatched = process_user_portfolio(user_stocks, mapping, mapping_upper)
     metrics = compute_metrics(sector_vector)
 

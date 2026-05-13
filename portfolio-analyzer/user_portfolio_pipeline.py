@@ -13,7 +13,7 @@ import numpy as np
 # -----------------------------------------------
 # 1. LOAD STOCK → SECTOR MAPPING
 # -----------------------------------------------
-def load_sector_mapping(clean_csv_path="fund_stocks_clean.csv"):
+def load_sector_mapping(clean_csv_path="data/fund_stocks_clean_grouped.csv"):
     """
     Build stock -> sector dictionary from Groww benchmark data.
     Filters out debt/sovereign instruments.
@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     # --- Load mapping ---
     print("Loading sector mapping...")
-    mapping, mapping_upper = load_sector_mapping("fund_stocks_clean.csv")
+    mapping, mapping_upper = load_sector_mapping("data/fund_stocks_clean_grouped.csv")
     print(f"  Mapping loaded: {len(mapping)} stocks")
 
     # --- Process portfolio ---

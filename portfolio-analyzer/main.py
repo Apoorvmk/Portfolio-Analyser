@@ -2,11 +2,18 @@ import os
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models.schemas import AnalysisRequest, AnalysisReport, ChatRequest
+from models.schemas import (
+    AnalysisRequest, 
+    AnalysisReport, 
+    ChatRequest, 
+    RecommendationRequest, 
+    RecommendResponse,
+    TopMatch
+)
 from services.pipeline import run_analysis_pipeline
-from services.chatbot import get_chatbot_response
-from dotenv import load_dotenv
 from services.chatbot import get_chatbot_response, get_report_narrative
+from cosine_similarity import load_benchmark_vectors, match_portfolio, get_classification
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -23,13 +30,14 @@ app.add_middleware(
 
 # Global data variables
 MUTUAL_FUNDS_CSV = "data/fund_sector_vectors.csv"
-STOCKS_CSV = "data/fund_stocks_clean.csv"
+STOCKS_CSV = "data/fund_stocks_clean_grouped.csv"
 mf_data = pd.DataFrame()
 stocks_data = pd.DataFrame()
+benchmark_df = pd.DataFrame()
 
 @app.on_event("startup")
 async def startup_event():
-    global mf_data, stocks_data
+    global mf_data, stocks_data, benchmark_df
     if os.path.exists(MUTUAL_FUNDS_CSV):
         mf_data = pd.read_csv(MUTUAL_FUNDS_CSV)
     else:
@@ -39,6 +47,14 @@ async def startup_event():
         stocks_data = pd.read_csv(STOCKS_CSV)
     else:
         print(f"Warning: {STOCKS_CSV} not found!")
+    
+    # Load benchmark vectors for similarity matching
+    FUND_METRICS_CSV = "data/fund_metrics.csv"
+    if os.path.exists(MUTUAL_FUNDS_CSV) and os.path.exists(FUND_METRICS_CSV):
+        benchmark_df = load_benchmark_vectors(MUTUAL_FUNDS_CSV, FUND_METRICS_CSV)
+    else:
+        benchmark_df = pd.DataFrame()
+        print("Warning: Benchmark data files missing for recommendations.")
 
 @app.get("/funds")
 async def get_funds():
@@ -48,6 +64,7 @@ async def get_funds():
     if mf_data.empty:
         return {"funds": []}
     return {"funds": mf_data["fund_name"].tolist()}
+
 @app.get("/stocks")
 async def get_stocks():
     """
@@ -88,10 +105,6 @@ async def chat_with_report(request: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
 
 @app.post("/report")
 async def generate_report_narrative(request: AnalysisReport):
@@ -107,3 +120,53 @@ async def generate_report_narrative(request: AnalysisReport):
             status_code=500, 
             detail=f"Report generation failed: {str(e)}"
         )
+
+@app.post("/recommend", response_model=RecommendResponse)
+async def recommend_funds(request: RecommendationRequest):
+    """
+    Finds the best matching mutual funds based on user's portfolio sector allocation.
+    """
+    if benchmark_df.empty:
+        raise HTTPException(status_code=500, detail="Benchmark data not loaded")
+    
+    try:
+        # Convert user portfolio to sector vector
+        stocks_input = [s.dict() for s in request.portfolio.stocks]
+        if not stocks_input:
+            raise HTTPException(status_code=400, detail="Portfolio is empty")
+        
+        df_user = pd.DataFrame(stocks_input)
+        sector_sums = df_user.groupby('sector')['amount_invested'].sum()
+        total_invested = sector_sums.sum()
+        
+        if total_invested == 0:
+            user_sector_vector = {}
+        else:
+            user_sector_vector = (sector_sums / total_invested * 100).to_dict()
+        
+        # Match against benchmarks
+        results_df = match_portfolio(user_sector_vector, benchmark_df)
+        classification = get_classification(results_df)
+        
+        top_match = TopMatch(
+            fund_name=classification["top_match_fund"],
+            category=classification["top_match_category"],
+            similarity=classification["top_match_similarity"]
+        )
+        
+        top_n = [
+            TopMatch(
+                fund_name=row["fund_name"],
+                category=row["category"],
+                similarity=row["similarity"]
+            )
+            for _, row in classification["top_n"].iterrows()
+        ]
+        
+        return RecommendResponse(
+            top_match=top_match,
+            top_n=top_n,
+            user_sector_vector=user_sector_vector
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Recommendation failed: {str(e)}")
